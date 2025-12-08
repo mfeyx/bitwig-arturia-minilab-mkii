@@ -350,7 +350,7 @@ function onMidi(status, data1, data2) {
       case SELECT_R:
         switch (Mode) {
           case "Track":
-            if (midi.isOn()) {
+            if (noteOn) {
               SubMode = "Send";
               host.showPopupNotification("Sends");
             } else {
@@ -372,7 +372,7 @@ function onMidi(status, data1, data2) {
       case SCROLL_L:
         switch (Mode) {
           case "Track":
-            if (midi.isOn()) {
+            if (noteOn) {
               host.showPopupNotification("Scroll Bank Up");
               tracks.scrollChannelsPageUp();
             }
