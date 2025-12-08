@@ -21,27 +21,28 @@ host.defineSysexIdentityReply(
 );
 
 /* ----------------------- top row ---------------------- */
-var Knobs2 = [112, 74, 71, 76, 77, 93, 73, 75];
+var KNOBS_TOP = [112, 74, 71, 76, 77, 93, 73, 75];
 /* --------------------- bottom row --------------------- */
-var Knobs1 = [114, 18, 19, 16, 17, 91, 79, 72];
+var KNOBS_LOW = [114, 18, 19, 16, 17, 91, 79, 72];
 /* ---------------------- pads 9-16 --------------------- */
-var Pad1 = [22, 23, 24, 25, 26, 27, 28, 29];
+var PADS = [22, 23, 24, 25, 26, 27, 28, 29];
 
-var ARTURIA_MODE = Pad1[0];
+var ARTURIA_MODE = PADS[0];
 
-// var PRESET_MODE = Pad1[1];
 
-// BITWIG CONTROLLS
-var MIXER_MODE = Pad1[2];
-var DEVICE_MODE = Pad1[3];
+/* ------------------ BITWIG CONTROLLS ------------------ */
+// TODO: Mode Selector,
+// Use One Button to switch between Mixer and Device Mode
+var MIXER_MODE = PADS[2];
+var DEVICE_MODE = PADS[3];
 
 // Sub Modes
-var SELECT_L = Pad1[4];
-var SELECT_R = Pad1[5];
+var SELECT_L = PADS[4];
+var SELECT_R = PADS[5];
 
 // Navigate
-var SCROLL_L = Pad1[6];
-var SCROLL_R = Pad1[7];
+var SCROLL_L = PADS[6];
+var SCROLL_R = PADS[7];
 
 /* ------------------------ Other ----------------------- */
 var Mode = "Track";
@@ -65,11 +66,13 @@ var padTranslation = initArray(0, 128);
 
 /* ----------------- ADD DEFAULT VALUES ----------------- */
 var KNOB_CACHE = {};
-var DEFAULT_VAL = 64;
+var DEFAULT_VAL = 24;
 for (var i = 0; i < 8; i++) {
-  KNOB_CACHE[Knobs1[i]] = DEFAULT_VAL;
-  KNOB_CACHE[Knobs2[i]] = DEFAULT_VAL;
+  KNOB_CACHE[KNOBS_LOW[i]] = DEFAULT_VAL;
+  KNOB_CACHE[KNOBS_TOP[i]] = DEFAULT_VAL;
 }
+// main volume
+KNOB_CACHE[75] = 110
 
 /* ------------------------------------------------------ */
 /*                     HELPER FUNCTIONS                   */
@@ -149,13 +152,6 @@ function knobFunc(Row, index, midi) {
         cDevice.getCommonParameter(index).inc(inc, 128);
       }
       break;
-    // case "Preset":
-    //   if (Row === 1) {
-    //     cDevice.getEnvelopeParameter(index).inc(inc, 128);
-    //   } else {
-    //     cDevice.getParameter(index).inc(inc, 128);
-    //   }
-    //   break;
     case "Arturia":
       // -1, 0, 1
       var inc = midi.data2 - 64;
@@ -215,8 +211,8 @@ function init() {
   setIndications("track");
 
   for (var i = 0; i < 8; i++) {
-    uControl.getControl(i).setLabel("CC " + Knobs1[i]);
-    uControl.getControl(i + 8).setLabel("CC " + Knobs2[i]);
+    uControl.getControl(i).setLabel("CC " + KNOBS_LOW[i]);
+    uControl.getControl(i + 8).setLabel("CC " + KNOBS_TOP[i]);
   }
 
   cTrack.addNameObserver(50, "None", function (name) {
@@ -328,15 +324,6 @@ function onMidi(status, data1, data2) {
         }
         break;
 
-      // case PRESET_MODE:
-      //   if (noteOn) {
-      //     Mode = "Preset";
-      //     host.showPopupNotification("Preset Mode");
-      //   } else {
-      //     setIndications("preset");
-      //   }
-      //   break;
-
       case SELECT_L:
         switch (Mode) {
           case "Track":
@@ -427,9 +414,9 @@ function onMidi(status, data1, data2) {
 
       default:
         for (var i = 0; i < 8; i++) {
-          if (midi.data1 === Knobs1[i]) {
+          if (midi.data1 === KNOBS_LOW[i]) {
             knobFunc(1, i, midi);
-          } else if (midi.data1 === Knobs2[i]) {
+          } else if (midi.data1 === KNOBS_TOP[i]) {
             knobFunc(2, i, midi);
           }
         }
