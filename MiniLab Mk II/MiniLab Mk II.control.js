@@ -5,11 +5,11 @@ load("Extensions.js");
 
 // Controller Script for the Arturia MiniLab mk II
 host.defineController(
-  "mfeyx",
-  "MiniLab Mk II",
+  "Arturia",
+  "MiniLab MK II",
   "1",
   "b90f7e7c-b0eb-46a5-9696-57a26b267b73",
-  "Markus Feiks"
+  "mfeyx"
 );
 host.addDeviceNameBasedDiscoveryPair(
   ["Arturia MiniLab mkII"],
