@@ -34,10 +34,14 @@ var ARTURIA_MODE = Pad1[0];
 // BITWIG CONTROLLS
 var MIXER_MODE = Pad1[2];
 var DEVICE_MODE = Pad1[3];
-var SELECT_MODE_BACK = Pad1[4];
-var SELECT_MODE_NEXT = Pad1[5];
-var BANK_LEFT = Pad1[6];
-var BANK_RIGHT = Pad1[7];
+
+// Sub Modes
+var SELECT_L = Pad1[4];
+var SELECT_R = Pad1[5];
+
+// Navigate
+var SCROLL_L = Pad1[6];
+var SCROLL_R = Pad1[7];
 
 /* ------------------------ Other ----------------------- */
 var Mode = "Track";
@@ -290,10 +294,11 @@ function onMidi(status, data1, data2) {
 
   var noteOn = midi.isOn();
   var isCCMessage = midi.isChannelController();
+  var controlMessage = midi.data1
 
   if (isCCMessage) {
-    switch (data1) {
-
+    switch (controlMessage) {
+      // used for Analog Lab Controlls
       case ARTURIA_MODE:
         if (noteOn) {
           Mode = "Arturia";
@@ -303,6 +308,7 @@ function onMidi(status, data1, data2) {
         }
         break;
 
+      // Mixer: controll Volume, Pan, or Sends
       case MIXER_MODE:
         if (noteOn) {
           Mode = "Track";
@@ -312,6 +318,7 @@ function onMidi(status, data1, data2) {
         }
         break;
 
+      // Devices: Switch between Devices, or select device pages
       case DEVICE_MODE:
         if (noteOn) {
           Mode = "Device";
@@ -330,7 +337,7 @@ function onMidi(status, data1, data2) {
       //   }
       //   break;
 
-      case SELECT_MODE_BACK:
+      case SELECT_L:
         switch (Mode) {
           case "Track":
             if (noteOn) {
@@ -353,7 +360,7 @@ function onMidi(status, data1, data2) {
         }
         break;
 
-      case SELECT_MODE_NEXT:
+      case SELECT_R:
         switch (Mode) {
           case "Track":
             if (midi.isOn()) {
@@ -375,7 +382,7 @@ function onMidi(status, data1, data2) {
         break;
 
       // this is use to scroll left
-      case BANK_LEFT:
+      case SCROLL_L:
         switch (Mode) {
           case "Track":
             if (midi.isOn()) {
@@ -397,7 +404,7 @@ function onMidi(status, data1, data2) {
         break;
 
       // this is used to scroll right
-      case BANK_RIGHT:
+      case SCROLL_R:
         switch (Mode) {
           case "Track":
             if (noteOn) {
