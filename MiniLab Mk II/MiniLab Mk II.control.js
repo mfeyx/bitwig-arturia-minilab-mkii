@@ -1,7 +1,10 @@
+/// <reference path="../api-docs/bitwig-controller-api.d.ts" />
+
 // Controller Script for the Arturia MiniLab
 loadAPI(1);
 
 load("Extensions.js");
+
 
 // Controller Script for the Arturia MiniLab mk II
 host.defineController(
