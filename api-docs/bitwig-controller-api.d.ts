@@ -8,59 +8,205 @@
  * At the top of your controller script (.control.js), add:
  * /// <reference path="./api-docs/bitwig-controller-api.d.ts" />
  *
+ * Global variables like 'host' and 'transport' are automatically available
+ * from Bitwig Studio's runtime environment.
+ *
  * Or if using module imports:
  * import type * as Bitwig from './api-docs/bitwig-controller-api.d.ts';
  */
 
-declare global {
-  // Global functions available in controller scripts
-  function loadAPI(version: number): void;
-  function println(message: string): void;
-  function errorln(message: string): void;
-
-  // Global host object
-  var host: ControllerHost;
-
-  // Standard controller lifecycle functions
-  function init(): void;
-  function flush(): void;
-  function exit(): void;
-
-  // Global transport object (commonly used)
-  var transport: Transport;
-}
+// Note: These globals are provided by Bitwig Studio at runtime:
+// - loadAPI(version: number): void
+// - println(message: string): void
+// - errorln(message: string): void
+// - host: ControllerHost
+// - transport: Transport (when created)
+// - init(): void
+// - flush(): void
+// - exit(): void
 
 // ===========================================================================================
 // CORE INTERFACES
 // ===========================================================================================
 
+/**
+ * The Host interface provides access to general application functionality and system information.
+ * This is the base interface for all host interactions in Bitwig Studio extensions.
+ */
 export interface Host {
+  /**
+   * Returns the latest supported API version of the host application.
+   * @returns The API version number supported by this host
+   * @since API version 1
+   */
   getHostApiVersion(): number;
+
+  /**
+   * Returns the vendor name of the host application.
+   * @returns The vendor string (typically "Bitwig")
+   * @since API version 1
+   */
   getHostVendor(): string;
+
+  /**
+   * Returns the product name of the host application.
+   * @returns The product name (typically "Bitwig Studio")
+   * @since API version 1
+   */
   getHostProduct(): string;
+
+  /**
+   * Returns the version number of the host application.
+   * @returns The version string of the host application
+   * @since API version 1
+   */
   getHostVersion(): string;
+
+  /**
+   * Returns the platform type that this host is running on.
+   * @returns The platform type (Windows, Mac, or Linux)
+   * @since API version 1
+   */
   getPlatformType(): PlatformType;
+
+  /**
+   * Sets an email address to use for reporting errors found in this script.
+   * @param address The email address for error reporting
+   * @since API version 1
+   */
   setErrorReportingEMail(address: string): void;
+
+  /**
+   * Gets the OpenSoundControl module for OSC communication.
+   * @returns The OSC module instance
+   * @since API version 1
+   */
   getOscModule(): OscModule;
+
+  /**
+   * Allocates memory that will be automatically freed once the extension exits.
+   * @param size The size of memory to allocate in bytes
+   * @returns The allocated memory block
+   * @since API version 1
+   */
   allocateMemoryBlock(size: number): MemoryBlock;
+
+  /**
+   * Creates an offscreen bitmap that the extension can use to render into.
+   * @param width The width of the bitmap in pixels
+   * @param height The height of the bitmap in pixels
+   * @param format The bitmap format to use
+   * @returns The created bitmap
+   * @since API version 1
+   */
   createBitmap(width: number, height: number, format: BitmapFormat): Bitmap;
+
+  /**
+   * Creates a new FontOptions object for text rendering.
+   * @returns A new FontOptions instance
+   * @since API version 1
+   */
   createFontOptions(): FontOptions;
+
+  /**
+   * Loads a font from the specified file path.
+   * @param path The path to the font file
+   * @returns The loaded font face
+   * @since API version 1
+   */
   loadFontFace(path: string): FontFace;
+
+  /**
+   * Loads a PNG image from the specified file path.
+   * @param path The path to the PNG file
+   * @returns The loaded image
+   * @since API version 1
+   */
   loadPNG(path: string): Image;
+
+  /**
+   * Loads an SVG image from the specified file path with scaling.
+   * @param path The path to the SVG file
+   * @param scale The scale factor to apply to the SVG
+   * @returns The loaded and scaled image
+   * @since API version 1
+   */
   loadSVG(path: string, scale: number): Image;
 }
 
+/**
+ * The ControllerHost interface extends Host and provides controller-specific functionality.
+ * This is the main interface for interacting with Bitwig Studio from controller scripts.
+ */
 export interface ControllerHost extends Host {
   // Controller Definition Methods
+
+  /**
+   * Registers the controller script in Bitwig Studio with identification information.
+   * This method must be called on the global scope of the script.
+   * @param vendor The vendor name of the controller (e.g., "Akai")
+   * @param name The name of the controller (e.g., "MIDIMix")
+   * @param version The version of the controller script
+   * @param uuid A unique identifier for this controller script (generate once and keep)
+   * @param author Optional author name for the controller script
+   * @since API version 1
+   */
   defineController(vendor: string, name: string, version: string, uuid: string, author?: string): void;
+
+  /**
+   * Defines the number of MIDI input and output ports that the controller uses.
+   * This method must be called on the global scope of the script.
+   * @param numInputs The number of MIDI input ports (0-16)
+   * @param numOutputs The number of MIDI output ports (0-16)
+   * @since API version 1
+   */
   defineMidiPorts(numInputs: number, numOutputs: number): void;
+
+  /**
+   * Defines a sysex identity reply pattern for device detection.
+   * @param reply The sysex identity reply pattern as hex string
+   * @since API version 1
+   */
   defineSysexIdentityReply(reply: string): void;
+
+  /**
+   * Registers device name patterns for automatic hardware detection.
+   * When the user clicks detect, Bitwig searches for devices matching these patterns.
+   * @param inputs Array of input port name patterns to match
+   * @param outputs Array of output port name patterns to match
+   * @since API version 1
+   */
   addDeviceNameBasedDiscoveryPair(inputs: string[], outputs: string[]): void;
+
+  /**
+   * Defines sysex patterns for device discovery via MIDI identity request.
+   * @param request The sysex request pattern to send
+   * @param reply The expected sysex reply pattern
+   * @since API version 1
+   */
   defineSysexDiscovery(request: string, reply: string): void;
 
   // Platform Detection
+
+  /**
+   * Checks if the host is running on Windows platform.
+   * @returns True if running on Windows, false otherwise
+   * @since API version 1
+   */
   platformIsWindows(): boolean;
+
+  /**
+   * Checks if the host is running on Mac platform.
+   * @returns True if running on Mac, false otherwise
+   * @since API version 1
+   */
   platformIsMac(): boolean;
+
+  /**
+   * Checks if the host is running on Linux platform.
+   * @returns True if running on Linux, false otherwise
+   * @since API version 1
+   */
   platformIsLinux(): boolean;
 
   // MIDI Ports
@@ -273,17 +419,84 @@ export enum HardwareControlType {
 // MIDI & HARDWARE
 // ===========================================================================================
 
+/**
+ * Represents a MIDI input port for receiving MIDI messages from hardware controllers.
+ */
 export interface MidiIn {
+  /**
+   * Sets a callback function for receiving short MIDI messages (note on/off, CC, etc.).
+   * @param callback Function called with (status, data1, data2) when MIDI is received
+   * - status: MIDI status byte (includes message type and channel)
+   * - data1: First data byte (note number, CC number, etc.)
+   * - data2: Second data byte (velocity, CC value, etc.)
+   * @since API version 1
+   */
   setMidiCallback(callback: (status: number, data1: number, data2: number) => void): void;
+
+  /**
+   * Sets a callback function for receiving system exclusive (sysex) messages.
+   * @param callback Function called with hex string when sysex is received
+   * @since API version 1
+   */
   setSysexCallback(callback: (data: string) => void): void;
+
+  /**
+   * Creates a note input for routing MIDI notes to Bitwig's instrument tracks.
+   * @param name Display name for this note input
+   * @param mask Optional MIDI mask pattern (e.g., "?0????" for channel 1 notes only)
+   * @returns The created note input
+   * @since API version 1
+   */
   createNoteInput(name: string, mask?: string): NoteInput;
+
+  /**
+   * Sets a translation table for incoming MIDI note numbers.
+   * @param table Array mapping input notes to output notes (128 elements)
+   * @since API version 1
+   */
   setKeyTranslationTable(table: number[]): void;
+
+  /**
+   * Sets a translation table for incoming MIDI velocity values.
+   * @param table Array mapping input velocities to output velocities (128 elements)
+   * @since API version 1
+   */
   setVelocityTranslationTable(table: number[]): void;
 }
 
+/**
+ * Represents a MIDI output port for sending MIDI messages to hardware controllers.
+ */
 export interface MidiOut {
+  /**
+   * Sends a short MIDI message to the hardware controller.
+   * @param status MIDI status byte (includes message type and channel)
+   * @param data1 First data byte (note number, CC number, etc.)
+   * @param data2 Second data byte (velocity, CC value, etc.)
+   * @since API version 1
+   * @example
+   * // Send note on C3 with velocity 100 on channel 1
+   * midiOut.sendMidi(0x90, 60, 100);
+   * // Send CC 7 (volume) with value 127 on channel 1
+   * midiOut.sendMidi(0xB0, 7, 127);
+   */
   sendMidi(status: number, data1: number, data2: number): void;
+
+  /**
+   * Sends a system exclusive (sysex) message to the hardware controller.
+   * @param data Hex string representation of the sysex data
+   * @since API version 1
+   * @example
+   * // Send device inquiry sysex
+   * midiOut.sendSysex("F0 7E 00 06 01 F7");
+   */
   sendSysex(data: string): void;
+
+  /**
+   * Configures whether this MIDI output should send MIDI beat clock.
+   * @param shouldSend True to send beat clock, false to disable
+   * @since API version 1
+   */
   setShouldSendMidiBeatClock(shouldSend: boolean): void;
 }
 
@@ -508,45 +721,250 @@ export interface PianoKeyboard {
 // TRANSPORT & TIME
 // ===========================================================================================
 
+/**
+ * The Transport interface provides access to Bitwig Studio's transport controls and playback state.
+ * Use this to control playback, recording, and monitor transport status.
+ */
 export interface Transport {
+  // Status Properties
+
+  /**
+   * Indicates whether the transport is currently playing.
+   * @returns BooleanValue that tracks play state
+   * @since API version 1
+   */
   isPlaying(): BooleanValue;
+
+  /**
+   * Indicates whether arranger recording is enabled.
+   * @returns BooleanValue that tracks arranger record state
+   * @since API version 1
+   */
   isArrangerRecordEnabled(): BooleanValue;
+
+  /**
+   * Indicates whether arranger overdub is enabled.
+   * @returns BooleanValue that tracks arranger overdub state
+   * @since API version 1
+   */
   isArrangerOverdubEnabled(): BooleanValue;
+
+  /**
+   * Indicates whether clip launcher automation write is enabled.
+   * @returns BooleanValue that tracks automation write state
+   * @since API version 1
+   */
   isClipLauncherAutomationWriteEnabled(): BooleanValue;
+
+  /**
+   * Indicates whether clip launcher overdub is enabled.
+   * @returns BooleanValue that tracks clip launcher overdub state
+   * @since API version 1
+   */
   isClipLauncherOverdubEnabled(): BooleanValue;
+
+  /**
+   * Gets the current automation write mode.
+   * @returns SettableEnumValue for the automation write mode
+   * @since API version 1
+   */
   automationWriteMode(): SettableEnumValue;
+
+  /**
+   * Indicates whether arranger automation write is enabled.
+   * @returns BooleanValue that tracks arranger automation write state
+   * @since API version 1
+   */
   isArrangerAutomationWriteEnabled(): BooleanValue;
+
+  /**
+   * Indicates whether arranger loop is enabled.
+   * @returns BooleanValue that tracks loop state
+   * @since API version 1
+   */
   isArrangerLoopEnabled(): BooleanValue;
+
+  /**
+   * Indicates whether punch-in recording is enabled.
+   * @returns BooleanValue that tracks punch-in state
+   * @since API version 1
+   */
   isPunchInEnabled(): BooleanValue;
+
+  /**
+   * Indicates whether punch-out recording is enabled.
+   * @returns BooleanValue that tracks punch-out state
+   * @since API version 1
+   */
   isPunchOutEnabled(): BooleanValue;
+
+  /**
+   * Indicates whether the metronome is enabled.
+   * @returns BooleanValue that tracks metronome state
+   * @since API version 1
+   */
   isMetronomeEnabled(): BooleanValue;
+
+  /**
+   * Indicates whether the metronome is audible during pre-roll.
+   * @returns BooleanValue that tracks metronome pre-roll state
+   * @since API version 1
+   */
   isMetronomeAudibleDuringPreRoll(): BooleanValue;
+
+  /**
+   * Indicates whether the metronome is audible during pre-count.
+   * @returns BooleanValue that tracks metronome pre-count state
+   * @since API version 1
+   */
   isMetronomeAudibleDuringPreCount(): BooleanValue;
+
+  /**
+   * Gets the pre-roll setting.
+   * @returns SettableEnumValue for the pre-roll mode
+   * @since API version 1
+   */
   preRoll(): SettableEnumValue;
+
+  /**
+   * Gets the current playhead position.
+   * @returns BeatTimeValue representing the current position in beats
+   * @since API version 1
+   */
   getPosition(): BeatTimeValue;
+
+  /**
+   * Gets the loop in position.
+   * @returns BeatTimeValue representing the loop start position
+   * @since API version 1
+   */
   getInPosition(): BeatTimeValue;
+
+  /**
+   * Gets the loop out position.
+   * @returns BeatTimeValue representing the loop end position
+   * @since API version 1
+   */
   getOutPosition(): BeatTimeValue;
+
+  /**
+   * Gets the crossfade parameter for smooth transitions.
+   * @returns Parameter for controlling crossfade amount
+   * @since API version 1
+   */
   getCrossfade(): Parameter;
+
+  /**
+   * Gets the current time signature.
+   * @returns TimeSignatureValue representing bars/beats structure
+   * @since API version 1
+   */
   timeSignature(): TimeSignatureValue;
+
+  /**
+   * Gets the play start position setting.
+   * @returns SettableDoubleValue for the play start position
+   * @since API version 1
+   */
   playStartPosition(): SettableDoubleValue;
+
+  /**
+   * Gets the default launch quantization setting.
+   * @returns SettableEnumValue for quantization options
+   * @since API version 1
+   */
   defaultLaunchQuantization(): SettableEnumValue;
 
-  // Actions
+  // Transport Control Actions
+
+  /**
+   * Starts playback from the current position.
+   * @since API version 1
+   */
   play(): void;
+
+  /**
+   * Stops playback and keeps the playhead at current position.
+   * @since API version 1
+   */
   stop(): void;
+
+  /**
+   * Restarts playback from the beginning of the arrangement.
+   * @since API version 1
+   */
   restart(): void;
+
+  /**
+   * Enables/toggles recording mode.
+   * @since API version 1
+   */
   record(): void;
+
+  /**
+   * Moves the playhead backwards (fast rewind).
+   * @since API version 1
+   */
   rewind(): void;
+
+  /**
+   * Moves the playhead forwards (fast forward).
+   * @since API version 1
+   */
   fastForward(): void;
+
+  /**
+   * Toggles between play and pause states.
+   * @since API version 1
+   */
   togglePlay(): void;
+
+  /**
+   * Sets the playhead to a specific position.
+   * @param beats The position in beats to jump to
+   * @since API version 1
+   */
   setPosition(beats: number): void;
+
+  /**
+   * Launches playback from the configured play start position.
+   * @since API version 1
+   */
   launchFromPlayStartPosition(): void;
+
+  /**
+   * Jumps the playhead to the next cue marker.
+   * @since API version 1
+   */
   jumpToNextCueMarker(): void;
+
+  /**
+   * Jumps the playhead to the previous cue marker.
+   * @since API version 1
+   */
   jumpToPreviousCueMarker(): void;
+
+  /**
+   * Records a tap for tempo detection and adjustment.
+   * @since API version 1
+   */
   tapTempo(): void;
 
-  // Observers
+  // Observer Methods
+
+  /**
+   * Adds an observer for transport play state changes.
+   * @param callback Function called when play state changes
+   * @since API version 1
+   */
   addIsPlayingObserver(callback: (isPlaying: boolean) => void): void;
+
+  /**
+   * Adds an observer for playhead position changes.
+   * @param callback Function called when position changes
+   * @param ppqInterval The interval in pulses per quarter note for updates
+   * @since API version 1
+   */
   addPlayPositionObserver(callback: (position: number) => void, ppqInterval: number): void;
 }
 
@@ -710,39 +1128,189 @@ export interface EffectTrackBank extends TrackBank {
   // Effect track bank specific methods
 }
 
+/**
+ * Represents a track in Bitwig Studio, providing access to all track properties and controls.
+ * This includes audio tracks, instrument tracks, hybrid tracks, and group tracks.
+ */
 export interface Track {
+  // Basic Properties
+
+  /**
+   * Gets the name of the track.
+   * @returns StringValue that tracks the current track name
+   * @since API version 1
+   */
   name(): StringValue;
+
+  /**
+   * Indicates whether this track exists in the current context.
+   * @returns BooleanValue that tracks if the track exists
+   * @since API version 1
+   */
   exists(): BooleanValue;
+
+  /**
+   * Indicates whether this track is currently activated (enabled).
+   * @returns BooleanValue that tracks the track's activation state
+   * @since API version 1
+   */
   isActivated(): BooleanValue;
+
+  /**
+   * Indicates whether this track is currently selected.
+   * @returns BooleanValue that tracks the selection state
+   * @since API version 1
+   */
   isSelected(): BooleanValue;
+
+  /**
+   * Indicates whether there is a next track in the bank.
+   * @returns BooleanValue that tracks if next track is available
+   * @since API version 1
+   */
   hasNext(): BooleanValue;
+
+  /**
+   * Indicates whether there is a previous track in the bank.
+   * @returns BooleanValue that tracks if previous track is available
+   * @since API version 1
+   */
   hasPrevious(): BooleanValue;
+
+  /**
+   * Gets the type of this track (audio, instrument, hybrid, group, etc.).
+   * @returns StringValue representing the track type
+   * @since API version 1
+   */
   trackType(): StringValue;
+
+  /**
+   * Gets the position/index of this track.
+   * @returns IntegerValue representing the track position
+   * @since API version 1
+   */
   position(): IntegerValue;
+
+  /**
+   * Indicates whether this is a group track containing other tracks.
+   * @returns BooleanValue that tracks if this is a group track
+   * @since API version 1
+   */
   isGroup(): BooleanValue;
+
+  /**
+   * Gets the track color for visual identification.
+   * @returns SettableColorValue for the track color
+   * @since API version 1
+   */
   color(): SettableColorValue;
+
+  // Audio Controls
+
+  /**
+   * Gets the track volume control.
+   * @returns Parameter for controlling track volume (0.0 to 1.0)
+   * @since API version 1
+   */
   volume(): Parameter;
+
+  /**
+   * Gets the track pan control.
+   * @returns Parameter for controlling stereo pan (-1.0 to 1.0)
+   * @since API version 1
+   */
   pan(): Parameter;
+
+  /**
+   * Gets the track mute state.
+   * @returns SettableBooleanValue for mute on/off
+   * @since API version 1
+   */
   mute(): SettableBooleanValue;
+
+  /**
+   * Gets the track solo state.
+   * @returns SettableBooleanValue for solo on/off
+   * @since API version 1
+   */
   solo(): SettableBooleanValue;
+
+  /**
+   * Gets the track record arm state.
+   * @returns SettableBooleanValue for record arm on/off
+   * @since API version 1
+   */
   arm(): SettableBooleanValue;
+
+  /**
+   * Gets the track monitoring state.
+   * @returns SettableBooleanValue for monitor on/off
+   * @since API version 1
+   */
   monitor(): SettableBooleanValue;
+
+  /**
+   * Gets the crossfade mode for this track (A, B, or None).
+   * @returns SettableEnumValue for crossfade assignment
+   * @since API version 1
+   */
   crossFadeMode(): SettableEnumValue;
+
+  /**
+   * Indicates whether playback on this track is currently stopped.
+   * @returns BooleanValue that tracks the stopped state
+   * @since API version 1
+   */
   isStopped(): BooleanValue;
+
+  /**
+   * Gets information about currently playing notes on this track.
+   * @returns PlayingNoteArrayValue with active note information
+   * @since API version 1
+   */
   playingNotes(): PlayingNoteArrayValue;
+
+  /**
+   * Gets the source selector for choosing track input sources.
+   * @returns SourceSelector for input routing
+   * @since API version 1
+   */
   sourceSelector(): SourceSelector;
 
-  // Sends
+  // Send Effects
+
+  /**
+   * Gets a specific send effect by index.
+   * @param index The send index (0-based)
+   * @returns Send object for the specified send
+   * @since API version 1
+   */
   getSend(index: number): Send;
+
+  /**
+   * Gets the bank of send effects for this track.
+   * @returns SendBank containing all available sends
+   * @since API version 1
+   */
   sendBank(): SendBank;
 
   // Clips
+
+  /**
+   * Gets the clip launcher slot bank for this track.
+   * @returns ClipLauncherSlotBank for launching clips
+   * @since API version 1
+   */
   clipLauncherSlotBank(): ClipLauncherSlotBank;
 
   // Devices
-  deviceChain(): DeviceChain;
 
-  // Actions
+  /**
+   * Gets the device chain for this track (instruments and effects).
+   * @returns DeviceChain containing all devices on this track
+   * @since API version 1
+   */
+  deviceChain(): DeviceChain;  // Actions
   selectInMixer(): void;
   selectInEditor(): void;
   makeVisibleInArranger(): void;
@@ -984,24 +1552,118 @@ export interface DeviceSlot {
   deleteObjects(): void;
 }
 
+/**
+ * Represents a controllable parameter in Bitwig Studio (volume, pan, effect parameters, etc.).
+ * Parameters can be automated, modulated, and controlled via MIDI or scripts.
+ */
 export interface Parameter extends SettableDoubleValue {
+  // Basic Properties
+
+  /**
+   * Gets the name/label of this parameter.
+   * @returns StringValue representing the parameter name
+   * @since API version 1
+   */
   name(): StringValue;
+
+  /**
+   * Gets the formatted display value of this parameter (e.g., "50%", "-12dB").
+   * @returns StringValue with the human-readable parameter value
+   * @since API version 1
+   */
   displayedValue(): StringValue;
+
+  /**
+   * Gets the modulated value of this parameter (including modulation).
+   * @returns DoubleValue representing the final modulated value
+   * @since API version 1
+   */
   modulatedValue(): DoubleValue;
+
+  /**
+   * Indicates whether this parameter exists and is available.
+   * @returns BooleanValue that tracks parameter existence
+   * @since API version 1
+   */
   exists(): BooleanValue;
+
+  // Value Manipulation
+
+  /**
+   * Gets a formatted label for a specific parameter value.
+   * @param value The parameter value (0.0 to 1.0) to get label for
+   * @returns String representation of that value
+   * @since API version 1
+   */
   getLabelForValue(value: number): string;
+
+  /**
+   * Resets the parameter to its default value.
+   * @since API version 1
+   */
   resetToDefault(): void;
+
+  /**
+   * Indicates whether this parameter is currently being touched/adjusted.
+   * @param isBeingTouched True when starting to touch, false when releasing
+   * @since API version 1
+   */
   touch(isBeingTouched: boolean): void;
+
+  /**
+   * Gets the current touch state of this parameter.
+   * @returns BooleanValue indicating if parameter is being touched
+   * @since API version 1
+   */
   isBeingTouched(): BooleanValue;
 
   // Modulation
+
+  /**
+   * Sets a modulation source for this parameter.
+   * @param source The ModulationSource to assign to this parameter
+   * @since API version 1
+   */
   setModulationSource(source: ModulationSource): void;
+
+  /**
+   * Gets the currently assigned modulation source.
+   * @returns ModulationSource assigned to this parameter
+   * @since API version 1
+   */
   getModulationSource(): ModulationSource;
+
+  /**
+   * Gets the modulation amount parameter.
+   * @returns SettableDoubleValue for controlling modulation depth
+   * @since API version 1
+   */
   modulationValue(): SettableDoubleValue;
 
-  // Observers
+  // Observer Methods
+
+  /**
+   * Adds an observer for parameter name changes.
+   * @param numChars Maximum number of characters for the name
+   * @param textWhenUnassigned Text to show when parameter is not assigned
+   * @param callback Function called when name changes
+   * @since API version 1
+   */
   addNameObserver(numChars: number, textWhenUnassigned: string, callback: (name: string) => void): void;
+
+  /**
+   * Adds an observer for parameter value changes.
+   * @param callback Function called when parameter value changes (0.0 to 1.0)
+   * @since API version 1
+   */
   addValueObserver(callback: (value: number) => void): void;
+
+  /**
+   * Adds an observer for parameter display value changes.
+   * @param numChars Maximum number of characters for the display value
+   * @param callback Function called when display value changes
+   * @since API version 1
+   */
   addValueDisplayObserver(numChars: number, callback: (value: string) => void): void;
 }
 
@@ -1504,37 +2166,99 @@ export interface ControllerInitializer {
 // ===========================================================================================
 
 /**
- * Common utility functions for MIDI processing
+ * Utility functions for processing MIDI data and converting between different formats.
+ * These functions help with common MIDI operations in controller scripts.
  */
 export namespace MidiUtils {
-  /** Extract MIDI channel from status byte (0-15) */
+  /**
+   * Extracts the MIDI channel from a status byte.
+   * @param status The MIDI status byte
+   * @returns The channel number (0-15)
+   * @example
+   * const channel = MidiUtils.getChannel(0x91); // Returns 1
+   */
   export function getChannel(status: number): number;
 
-  /** Extract MIDI message type from status byte */
+  /**
+   * Extracts the MIDI message type from a status byte.
+   * @param status The MIDI status byte
+   * @returns The message type (0x80, 0x90, 0xB0, etc.)
+   * @example
+   * const msgType = MidiUtils.getMessageType(0x91); // Returns 0x90 (note on)
+   */
   export function getMessageType(status: number): number;
 
-  /** Create a status byte from message type and channel */
+  /**
+   * Creates a MIDI status byte from message type and channel.
+   * @param messageType The MIDI message type (0x80, 0x90, etc.)
+   * @param channel The MIDI channel (0-15)
+   * @returns The combined status byte
+   * @example
+   * const status = MidiUtils.createStatusByte(0x90, 1); // Returns 0x91
+   */
   export function createStatusByte(messageType: number, channel: number): number;
 
-  /** Convert 7-bit MIDI value to normalized 0-1 range */
+  /**
+   * Converts a 7-bit MIDI value to normalized 0-1 range.
+   * @param midiValue The MIDI value (0-127)
+   * @returns Normalized value (0.0-1.0)
+   * @example
+   * const normalized = MidiUtils.midiToNormalized(64); // Returns ~0.504
+   */
   export function midiToNormalized(midiValue: number): number;
 
-  /** Convert normalized 0-1 value to 7-bit MIDI range */
+  /**
+   * Converts a normalized value to 7-bit MIDI range.
+   * @param normalizedValue The normalized value (0.0-1.0)
+   * @returns MIDI value (0-127)
+   * @example
+   * const midiVal = MidiUtils.normalizedToMidi(0.5); // Returns 63
+   */
   export function normalizedToMidi(normalizedValue: number): number;
 
-  /** Check if MIDI message is a CC message */
+  /**
+   * Checks if a MIDI message is a Control Change message.
+   * @param status The MIDI status byte
+   * @returns True if this is a CC message
+   * @example
+   * const isCC = MidiUtils.isControlChange(0xB0); // Returns true
+   */
   export function isControlChange(status: number): boolean;
 
-  /** Check if MIDI message is a Note On message */
+  /**
+   * Checks if a MIDI message is a Note On message.
+   * @param status The MIDI status byte
+   * @returns True if this is a note on message
+   * @example
+   * const isNoteOn = MidiUtils.isNoteOn(0x90); // Returns true
+   */
   export function isNoteOn(status: number): boolean;
 
-  /** Check if MIDI message is a Note Off message */
+  /**
+   * Checks if a MIDI message is a Note Off message.
+   * @param status The MIDI status byte
+   * @returns True if this is a note off message
+   * @example
+   * const isNoteOff = MidiUtils.isNoteOff(0x80); // Returns true
+   */
   export function isNoteOff(status: number): boolean;
 
-  /** Convert sysex string to byte array */
+  /**
+   * Converts a sysex hex string to a byte array.
+   * @param sysexString Hex string representation (e.g., "F0 7E 00 F7")
+   * @returns Array of byte values
+   * @example
+   * const bytes = MidiUtils.sysexStringToBytes("F0 7E 00 F7"); // [240, 126, 0, 247]
+   */
   export function sysexStringToBytes(sysexString: string): number[];
 
-  /** Convert byte array to sysex string */
+  /**
+   * Converts a byte array to sysex hex string representation.
+   * @param bytes Array of byte values
+   * @returns Hex string representation
+   * @example
+   * const sysex = MidiUtils.bytesToSysexString([240, 126, 0, 247]); // "F0 7E 00 F7"
+   */
   export function bytesToSysexString(bytes: number[]): string;
 }
 
