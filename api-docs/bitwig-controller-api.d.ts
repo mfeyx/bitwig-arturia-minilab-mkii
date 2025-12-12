@@ -209,8 +209,28 @@ export interface ControllerHost extends Host {
    */
   platformIsLinux(): boolean;
 
-  // MIDI Ports
+  // MIDI Port Access
+
+  /**
+   * Returns the MIDI input port with the given index.
+   * @param index The index of the MIDI input port (0-based)
+   * @returns The MIDI input port for receiving MIDI from hardware
+   * @since API version 1
+   * @example
+   * const midiIn = host.getMidiInPort(0);
+   * midiIn.setMidiCallback(onMidi);
+   */
   getMidiInPort(index: number): MidiIn;
+
+  /**
+   * Returns the MIDI output port with the given index.
+   * @param index The index of the MIDI output port (0-based)
+   * @returns The MIDI output port for sending MIDI to hardware
+   * @since API version 1
+   * @example
+   * const midiOut = host.getMidiOutPort(0);
+   * midiOut.sendMidi(0x90, 60, 100); // Send note on
+   */
   getMidiOutPort(index: number): MidiOut;
 
   // Hardware
@@ -500,12 +520,65 @@ export interface MidiOut {
   setShouldSendMidiBeatClock(shouldSend: boolean): void;
 }
 
+/**
+ * Represents a note input for routing MIDI notes to Bitwig Studio's instrument tracks.
+ * Note inputs allow you to filter and transform incoming MIDI data before it reaches instruments.
+ */
 export interface NoteInput {
+  /**
+   * Determines whether note input should consume the incoming MIDI events.
+   * @param shouldConsume True if events should be consumed (not passed to other inputs)
+   * @since API version 1
+   * @example
+   * noteInput.setShouldConsumeEvents(false); // Allow other inputs to also receive MIDI
+   */
   setShouldConsumeEvents(shouldConsume: boolean): void;
+
+  /**
+   * Sets a translation table for incoming MIDI note numbers.
+   * @param table Array of 128 elements mapping input notes to output notes
+   * @since API version 1
+   * @example
+   * // Transpose all notes up by one octave
+   * const table = Array(128).fill(0).map((_, i) => Math.min(i + 12, 127));
+   * noteInput.setKeyTranslationTable(table);
+   */
   setKeyTranslationTable(table: number[]): void;
+
+  /**
+   * Sets a translation table for incoming MIDI velocity values.
+   * @param table Array of 128 elements mapping input velocities to output velocities
+   * @since API version 1
+   * @example
+   * // Scale down all velocities by 50%
+   * const table = Array(128).fill(0).map((_, i) => Math.floor(i * 0.5));
+   * noteInput.setVelocityTranslationTable(table);
+   */
   setVelocityTranslationTable(table: number[]): void;
+
+  /**
+   * Sets the MIDI channel for this note input.
+   * @param channel The MIDI channel (0-15, or -1 for omni)
+   * @since API version 1
+   */
   setChannel(channel: number): void;
+
+  /**
+   * Assigns polyphonic aftertouch to a note expression.
+   * @param note The note number to assign aftertouch for
+   * @param expression The note expression type
+   * @param range The range of the expression
+   * @since API version 1
+   */
   assignPolyphonicAftertouchToExpression(note: number, expression: number, range: number): void;
+
+  /**
+   * Sends a raw MIDI event through this note input.
+   * @param status The MIDI status byte
+   * @param data1 The first data byte
+   * @param data2 The second data byte
+   * @since API version 1
+   */
   sendRawMidiEvent(status: number, data1: number, data2: number): void;
 }
 
@@ -526,11 +599,47 @@ export interface HardwareSurface {
   createPianoKeyboard(id: string, numKeys: number, octave: number, startFromC: boolean): PianoKeyboard;
 }
 
+/**
+ * Represents a physical button on a hardware controller.
+ * Provides access to press/release events and visual feedback via LEDs.
+ */
 export interface HardwareButton extends HardwareControl {
+  /**
+   * Gets the hardware action for button press events.
+   * @returns HardwareAction that triggers when button is pressed
+   * @since API version 1
+   * @example
+   * button.pressedAction().setActionMatcher(midiExpressions.createNoteOnActionMatcher(0, 60));
+   * button.pressedAction().setBinding(transport.playAction());
+   */
   pressedAction(): HardwareAction;
+
+  /**
+   * Gets the hardware action for button release events.
+   * @returns HardwareAction that triggers when button is released
+   * @since API version 1
+   */
   releasedAction(): HardwareAction;
+
+  /**
+   * Indicates whether the button is currently pressed.
+   * @returns BooleanValue tracking button press state
+   * @since API version 1
+   */
   isPressed(): BooleanValue;
+
+  /**
+   * Sets the display label for this button.
+   * @param label The text label to display
+   * @since API version 1
+   */
   setLabel(label: string): void;
+
+  /**
+   * Sets the color of the button label.
+   * @param color The color for the label
+   * @since API version 1
+   */
   setLabelColor(color: Color): void;
 }
 
@@ -598,31 +707,129 @@ export interface RelativeHardwarControlBindable {
 // VALUES & OBSERVABLES
 // ===========================================================================================
 
+/**
+ * Base interface for objects that can be observed for value changes.
+ * This is the foundation for Bitwig's reactive programming model.
+ * @template T The type of value being observed
+ */
 export interface Observable<T> {
+  /**
+   * Adds an observer callback that will be called when the value changes.
+   * @param callback Function called when value changes
+   * @since API version 1
+   * @example
+   * transport.isPlaying().addValueObserver(isPlaying => {
+   *   println("Transport is " + (isPlaying ? "playing" : "stopped"));
+   * });
+   */
   addValueObserver(callback: (value: T) => void): void;
+
+  /**
+   * Marks this observable as interested, enabling value change notifications.
+   * Must be called to receive value change callbacks.
+   * @since API version 1
+   */
   markInterested(): void;
 }
 
+/**
+ * Represents a value that can be observed and accessed.
+ * Extends Observable to provide direct value access.
+ * @template T The type of value
+ */
 export interface Value<T> extends Observable<T> {
+  /**
+   * Gets the current value.
+   * @returns The current value of type T
+   * @since API version 1
+   * @example
+   * const isPlaying = transport.isPlaying().get();
+   * if (isPlaying) {
+   *   println("Currently playing");
+   * }
+   */
   get(): T;
 }
 
+/**
+ * Represents a value that can be both observed and modified.
+ * @template T The type of value
+ */
 export interface SettableValue<T> extends Value<T> {
+  /**
+   * Sets the value.
+   * @param value The new value to set
+   * @since API version 1
+   * @example
+   * track.volume().set(0.75); // Set volume to 75%
+   * track.mute().set(true);    // Mute the track
+   */
   set(value: T): void;
 }
 
+/**
+ * Represents a boolean value that can be observed for changes.
+ * Used throughout the API for on/off states like mute, solo, play status, etc.
+ */
 export interface BooleanValue extends Value<boolean> {
+  /**
+   * Toggles the boolean value (true becomes false, false becomes true).
+   * @since API version 1
+   * @example
+   * track.mute().toggle(); // Toggle track mute state
+   */
   toggle(): void;
 }
 
+/**
+ * Represents a double-precision floating point value that can be observed for changes.
+ * Commonly used for parameters, volume levels, and other continuous controls.
+ */
 export interface DoubleValue extends Value<number> {
-  // Double value methods
+  /**
+   * Gets the current raw value.
+   * @returns The current numeric value
+   * @since API version 1
+   */
+  getRaw(): number;
 }
 
+/**
+ * Represents a settable double value with increment/decrement capabilities.
+ * Used for parameters that can be adjusted by controllers.
+ */
 export interface SettableDoubleValue extends DoubleValue, SettableValue<number> {
+  /**
+   * Increases the value by the specified amount.
+   * @param amount The amount to increase (0.0 to 1.0)
+   * @param resolution Optional resolution for the increment
+   * @since API version 1
+   * @example
+   * track.volume().inc(0.1); // Increase volume by 10%
+   */
   inc(amount: number, resolution?: number): void;
+
+  /**
+   * Decreases the value by the specified amount.
+   * @param amount The amount to decrease (0.0 to 1.0)
+   * @param resolution Optional resolution for the decrement
+   * @since API version 1
+   * @example
+   * track.volume().dec(0.1); // Decrease volume by 10%
+   */
   dec(amount: number, resolution?: number): void;
+
+  /**
+   * Resets the value to its default.
+   * @since API version 1
+   */
   reset(): void;
+
+  /**
+   * Sets whether this value should show visual indication in the UI.
+   * @param shouldIndicate True to show indication, false to hide
+   * @since API version 1
+   */
   setIndication(shouldIndicate: boolean): void;
 }
 
@@ -663,11 +870,44 @@ export interface SettableEnumValue extends EnumValue, SettableValue<string> {
 // GRAPHICS & UI
 // ===========================================================================================
 
+/**
+ * Represents a color value with red, green, blue, and alpha components.
+ * Colors are used throughout Bitwig for tracks, devices, clips, and UI elements.
+ */
 export interface Color {
+  /**
+   * Gets the red component of the color.
+   * @returns Red value (0.0 to 1.0)
+   * @since API version 1
+   */
   getRed(): number;
+
+  /**
+   * Gets the green component of the color.
+   * @returns Green value (0.0 to 1.0)
+   * @since API version 1
+   */
   getGreen(): number;
+
+  /**
+   * Gets the blue component of the color.
+   * @returns Blue value (0.0 to 1.0)
+   * @since API version 1
+   */
   getBlue(): number;
+
+  /**
+   * Gets the alpha (transparency) component of the color.
+   * @returns Alpha value (0.0 to 1.0, where 1.0 is fully opaque)
+   * @since API version 1
+   */
   getAlpha(): number;
+
+  /**
+   * Converts the color to a hexadecimal string representation.
+   * @returns Hex color string (e.g., "#FF0000" for red)
+   * @since API version 1
+   */
   toHex(): string;
 }
 
@@ -1817,37 +2057,198 @@ export interface ClipLauncherSlotBank {
   scrollBackwards(): void;
 }
 
+/**
+ * Represents a slot in the clip launcher that can contain clips for live performance.
+ * Slots can launch, stop, record, and manage clips in Bitwig Studio's session view.
+ */
 export interface ClipLauncherSlot extends ClipLauncherSlotOrScene {
+  /**
+   * Indicates whether this slot contains a clip.
+   * @returns BooleanValue tracking if slot has content
+   * @since API version 1
+   */
   hasContent(): BooleanValue;
+
+  /**
+   * Gets the name of the clip in this slot.
+   * @returns StringValue representing the clip name
+   * @since API version 1
+   */
   name(): StringValue;
+
+  /**
+   * Gets the color of this clip slot.
+   * @returns SettableColorValue for the slot color
+   * @since API version 1
+   */
   color(): SettableColorValue;
+
+  /**
+   * Indicates whether this slot is currently selected.
+   * @returns BooleanValue tracking selection state
+   * @since API version 1
+   */
   isSelected(): BooleanValue;
+
+  /**
+   * Indicates whether the clip in this slot is currently playing.
+   * @returns BooleanValue tracking playback state
+   * @since API version 1
+   */
   isPlaying(): BooleanValue;
+
+  /**
+   * Indicates whether playback stop is queued for this slot.
+   * @returns BooleanValue tracking stop queue state
+   * @since API version 1
+   */
   isStopQueued(): BooleanValue;
+
+  /**
+   * Indicates whether this slot is currently recording.
+   * @returns BooleanValue tracking recording state
+   * @since API version 1
+   */
   isRecording(): BooleanValue;
+
+  /**
+   * Indicates whether recording is queued for this slot.
+   * @returns BooleanValue tracking record queue state
+   * @since API version 1
+   */
   isRecordingQueued(): BooleanValue;
+
+  /**
+   * Indicates whether playback is queued for this slot.
+   * @returns BooleanValue tracking playback queue state
+   * @since API version 1
+   */
   isPlaybackQueued(): BooleanValue;
 
-  // Actions
+  // Clip Actions
+
+  /**
+   * Selects this clip slot.
+   * @since API version 1
+   */
   select(): void;
+
+  /**
+   * Launches the clip in this slot (starts playback).
+   * @since API version 1
+   * @example
+   * clipSlot.launch(); // Start playing the clip
+   */
   launch(): void;
+
+  /**
+   * Launches the clip with alternative behavior (often used with shift modifiers).
+   * @since API version 1
+   */
   launchAlt(): void;
+
+  /**
+   * Starts recording into this slot.
+   * @since API version 1
+   */
   record(): void;
+
+  /**
+   * Stops playback of the clip in this slot.
+   * @since API version 1
+   */
   stop(): void;
+
+  /**
+   * Deletes the clip in this slot.
+   * @since API version 1
+   */
   deleteObject(): void;
+
+  /**
+   * Duplicates the clip in this slot.
+   * @since API version 1
+   */
   duplicate(): void;
+
+  /**
+   * Duplicates the content of the clip in this slot.
+   * @since API version 1
+   */
   duplicateContent(): void;
+
+  /**
+   * Shows this clip in the detail editor.
+   * @since API version 1
+   */
   showInEditor(): void;
+
+  /**
+   * Creates an empty clip in this slot with the specified length.
+   * @param lengthInBeats The length of the new clip in beats
+   * @since API version 1
+   * @example
+   * clipSlot.createEmptyClip(4); // Create a 4-beat clip
+   */
   createEmptyClip(lengthInBeats: number): void;
+
+  /**
+   * Selects this clip in the detail editor.
+   * @since API version 1
+   */
   selectInEditor(): void;
 
-  // Observers
+  // Observer Methods
+
+  /**
+   * Adds an observer for content changes in this slot.
+   * @param callback Function called when hasContent state changes
+   * @since API version 1
+   */
   addHasContentObserver(callback: (hasContent: boolean) => void): void;
+
+  /**
+   * Adds an observer for playback state changes.
+   * @param callback Function called when playing state changes
+   * @since API version 1
+   */
   addIsPlayingObserver(callback: (isPlaying: boolean) => void): void;
+
+  /**
+   * Adds an observer for recording state changes.
+   * @param callback Function called when recording state changes
+   * @since API version 1
+   */
   addIsRecordingObserver(callback: (isRecording: boolean) => void): void;
+
+  /**
+   * Adds an observer for selection state changes.
+   * @param callback Function called when selection state changes
+   * @since API version 1
+   */
   addIsSelectedObserver(callback: (isSelected: boolean) => void): void;
+
+  /**
+   * Adds an observer for name changes.
+   * @param numChars Maximum number of characters
+   * @param textWhenUnassigned Text when no clip is assigned
+   * @param callback Function called when name changes
+   * @since API version 1
+   */
   addNameObserver(numChars: number, textWhenUnassigned: string, callback: (name: string) => void): void;
+
+  /**
+   * Adds an observer for color changes.
+   * @param callback Function called when color changes (red, green, blue)
+   * @since API version 1
+   */
   addColorObserver(callback: (red: number, green: number, blue: number) => void): void;
+
+  /**
+   * Adds an observer for playback state changes with detailed state information.
+   * @param callback Function called when playback state changes
+   * @since API version 1
+   */
   addPlaybackStateObserver(callback: (state: number) => void): void;
 }
 
