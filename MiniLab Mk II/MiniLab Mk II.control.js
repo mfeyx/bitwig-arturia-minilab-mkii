@@ -6,6 +6,7 @@ loadAPI(1);
 load("Extensions.js");
 
 
+
 // Controller Script for the Arturia MiniLab mk II
 host.defineController(
   "Arturia",
